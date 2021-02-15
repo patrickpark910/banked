@@ -276,7 +276,7 @@ def plot_bank_data(keff_csv_name,rho_csv_name,figure_name):
 
 	fig,axs = plt.subplots(3,1, figsize=(1636/96, 3*673/96), dpi=my_dpi,facecolor='w',edgecolor='k')
 	ax_keff, ax_int, ax_dif = axs[0], axs[1], axs[2] # integral, differential worth on top, bottom, resp.
-	color = {rods[0]:"tab:red"} # ,rods[1]:"tab:green",rods[2]:"tab:blue"}
+	color = {rods[0]:"tab:purple"} # ,rods[1]:"tab:green",rods[2]:"tab:blue"}
 	
 	for rod in rods: # We want to sort our curves by rods
 		# Plot data for keff.
