@@ -39,11 +39,11 @@ from mcnp_funcs import *
 
 # Variables
 
-heights = [0,50,100] #[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100] # % heights, 
+heights = [0,25,50,75,100] #[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100] # % heights,
 # for use in strings, use str(height).zfill(3) to pad 0s until it is 3 characters long,
 # e.g. 'bank-010.i'
 
-filepath = os.path.dirname(os.path.abspath(__file__)) # Produces a str of this file's path: "C:/MCNP6/facilities/reed/banked". Do NOT add / at the end.
+FILEPATH = os.path.dirname(os.path.abspath(__file__)) # Produces a str of this file's path: "C:/MCNP6/facilities/reed/banked". Do NOT add / at the end.
 INPUTS_FOLDER_NAME = "inputs" # Folder for newly-generated MCNP input decks
 OUTPUTS_FOLDER_NAME = "outputs" # Folder for all MCNP output decks
 KEFF_CSV_NAME = "keff.csv" # File for keff and uncertainty values.
@@ -60,17 +60,16 @@ import this into another py file, e.g. 'from mcnp_funcs import *'.
 '''
 def main(argv):
 	initialize_rane()
-	os.chdir(filepath) 
-	base_input_name = find_base_file(f"{filepath}/.") # filepath/. goes up one dir level
-	module_name = os.path.splitext(__file__)[0] # For 'banked.py', returns "banked"
-	check_kcode(filepath,base_input_name)
+	base_input_name = find_base_file(f"{FILEPATH}/.") # filepath/. goes up one dir level
+	module_name = os.path.basename(__file__).split('.')[0] # For 'banked.py', returns "banked"
+	check_kcode(FILEPATH, base_input_name)
 
 	num_inputs_created = 0
 	num_inputs_skipped = 0
 
 	for height in heights:
 		rod_heights_dict = {"safe":height, "shim":height, "reg":height}
-		input_created = change_rod_height(filepath, module_name, rod_heights_dict, base_input_name, INPUTS_FOLDER_NAME)
+		input_created = change_rod_height(FILEPATH, module_name, rod_heights_dict, base_input_name, INPUTS_FOLDER_NAME)
 		# change_rod_height returns False if the input already exists.
 		# Otherwise, it finds and changes the heights and returns True.
 		if input_created: num_inputs_created +=1
@@ -84,11 +83,11 @@ def main(argv):
 
 	# Run MCNP for all .i files in f".\{inputs_folder_name}".
 	tasks = get_tasks()
-	for file in os.listdir(f"{filepath}/{INPUTS_FOLDER_NAME}"):
-		run_mcnp(filepath,f"{filepath}/{INPUTS_FOLDER_NAME}/{file}", OUTPUTS_FOLDER_NAME, tasks)
+	for file in os.listdir(f"{FILEPATH}/{INPUTS_FOLDER_NAME}"):
+		run_mcnp(FILEPATH, f"{FILEPATH}/{INPUTS_FOLDER_NAME}/{file}", OUTPUTS_FOLDER_NAME, tasks)
 
 	# Deletes MCNP runtape and source dist files.
-	delete_files(f"{filepath}/{OUTPUTS_FOLDER_NAME}", r=True, s=True)
+	delete_files(f"{FILEPATH}/{OUTPUTS_FOLDER_NAME}", r=True, s=True)
 
 	# Setup a dataframe to collect keff values
 	keff_df = pd.DataFrame(columns=["height","bank", "bank unc"]) # use lower cases to match 'rods' def above
@@ -100,7 +99,7 @@ def main(argv):
 	rods = ["bank"]
 	for rod in rods:
 		for height in heights:
-			keff, keff_unc = extract_keff(f"{filepath}/{OUTPUTS_FOLDER_NAME}/o_{module_name}-a{str(height).zfill(3)}-h{str(height).zfill(3)}-r{str(height).zfill(3)}.o")
+			keff, keff_unc = extract_keff(f"{FILEPATH}/{OUTPUTS_FOLDER_NAME}/o_{module_name}-a{str(height).zfill(3)}-h{str(height).zfill(3)}-r{str(height).zfill(3)}.o")
 			keff_df.loc[height,rod] = keff 
 			keff_df.loc[height,f'{rod} unc'] = keff_unc    
 	
@@ -326,14 +325,14 @@ def plot_bank_data(keff_csv_name,rho_csv_name,figure_name):
 	
 	# Keff plot settings
 	ax_keff.set_xlim([0,100])
-	ax_keff.set_ylim([0.945,0.98])
+	ax_keff.set_ylim([0.9675,1.03])
 
 	ax_keff.xaxis.set_major_locator(MultipleLocator(10))
-	ax_keff.yaxis.set_major_locator(MultipleLocator(0.005))
+	ax_keff.yaxis.set_major_locator(MultipleLocator(0.01))
 	
 	ax_keff.minorticks_on()
 	ax_keff.xaxis.set_minor_locator(MultipleLocator(2.5))
-	ax_keff.yaxis.set_minor_locator(MultipleLocator(0.001))
+	ax_keff.yaxis.set_minor_locator(MultipleLocator(0.0025))
 	
 	ax_keff.tick_params(axis='both', which='major', labelsize=label_fontsize)
 	
@@ -350,15 +349,15 @@ def plot_bank_data(keff_csv_name,rho_csv_name,figure_name):
 
 	# Overwrite set_ylim above for dollar units
 	if rho_or_dollars == "dollars":
-		ax_int.set_ylim([-0.25,4.5]) # Use for dollars units
+		ax_int.set_ylim([-0.25,8.0]) # Use for dollars units
 		ax_int.yaxis.set_major_formatter(FormatStrFormatter('%.2f')) # Use for 2 decimal places after 0. for dollars units
 
 	ax_int.xaxis.set_major_locator(MultipleLocator(10))
-	ax_int.yaxis.set_major_locator(MultipleLocator(0.5))
+	ax_int.yaxis.set_major_locator(MultipleLocator(1))
 	
 	ax_int.minorticks_on()
 	ax_int.xaxis.set_minor_locator(MultipleLocator(2.5))
-	ax_int.yaxis.set_minor_locator(MultipleLocator(0.125))
+	ax_int.yaxis.set_minor_locator(MultipleLocator(0.25))
 	
 	ax_int.tick_params(axis='both', which='major', labelsize=label_fontsize)
 	
@@ -371,10 +370,10 @@ def plot_bank_data(keff_csv_name,rho_csv_name,figure_name):
 	
 	# Differential worth plot settings
 	ax_dif.set_xlim([0,100])
-	ax_dif.set_ylim([0,0.06])
+	ax_dif.set_ylim([0,0.12])
 
 	if rho_or_dollars == "dollars": 
-		ax_dif.set_ylim([0,0.07]) # use for dollars/% units
+		ax_dif.set_ylim([0,0.12]) # use for dollars/% units
 
 	ax_dif.xaxis.set_major_locator(MultipleLocator(10))
 	ax_dif.yaxis.set_major_locator(MultipleLocator(0.01))
